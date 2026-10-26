@@ -1,0 +1,12 @@
+{
+  "note": "Titles across sites (Web J01). One entry per article: where it was published (from, url) and, for each other site the owner ticked, the category and tags it shows under there. Category and tag values are the slugs of that site's own /category/<slug>/ and /tag/<slug>/ pages.",
+  "sites": {
+    "forthegoodhearts": {"name": "For the Good Hearts", "url": "https://forthegoodhearts.github.io/"},
+    "basheerawanazeera": {"name": "Basheera Wa Nazeera", "url": "https://basheerawanazeera.github.io/BasheeraWaNazeera/"},
+    "mappingmyjourney": {"name": "Mapping My Journey", "url": "https://mappingmyjourney.com/"},
+    "madrasatulmuslimeen": {"name": "Madrasatul Muslimeen", "url": "https://madrasatulmuslimeen.org/"},
+    "learndeenonthego": {"name": "Learn Deen On The Go", "url": "https://learndeenonthego.com/"},
+    "hijrahmadeeasy": {"name": "Hijrah Made Easy", "url": "https://hijrahmadeeasy.org/"}
+  },
+  "titles": []
+}

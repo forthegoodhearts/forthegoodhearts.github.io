@@ -7,3 +7,8 @@ Free static copy of forthegoodhearts.com (WordPress, theme "newsnight"), made 26
 3. `python3 -I wpstatic.py mirror OUT forthegoodhearts.com https://forthegoodhearts.github.io/ posts.json pages.json`
    (fixes file names, drops WordPress-only links, keeps the same addresses, adds search, 404, sitemap.xml, robots.txt).
 4. Check with `node shoot.js` (Playwright screenshots, phone + desktop) and `python3 linkcheck.py OUT`.
+
+Titles across sites (26 Oct 2026, Web J01): the one list of titles is `titles/titles.json` (+ `titles/more.js`).
+Category and tag pages show a "From our other sites" box with the titles the owner ticked for them; `more/`
+lists them all. Added to a built site by `_build/kit/titles.py ROOT SITE_ID` (refresh.sh runs it when
+site.env has SITE_ID). This site has no WordPress refresh any more, so it was run here once.
