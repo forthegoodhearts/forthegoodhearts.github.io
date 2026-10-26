@@ -3,11 +3,14 @@
 
 usage: wpstatic.py MIRROR OUT DOMAIN BASE_URL POSTS_JSON PAGES_JSON
   BASE_URL is the new public address, ending in "/" (e.g. https://aaasapp.github.io/forthegoodhearts/)
+  HIDDEN=1 in the environment: the copy stays out of search (noindex) and its canonical
+  links name the real site (https://DOMAIN/...), for use while WordPress still serves the name.
 """
 import html, json, os, posixpath, re, shutil, sys, urllib.parse
 from datetime import datetime, timezone
 
 src, out, domain, base, posts_json, pages_json = sys.argv[1:7]
+HIDDEN = os.environ.get('HIDDEN') == '1'
 dom = re.escape(domain)
 ABS = re.compile(r'https?://(?:www\.)?' + dom + r'(/[^"\'\s)<>]*)?')
 ABS_ESC = re.compile(r'https?:\\/\\/(?:www\\.)?' + dom.replace('\\.', '\\\\?\\.'))
@@ -55,7 +58,23 @@ DROP_HEAD = [
 ]
 RESPOND = re.compile(r'<div id="respond" class="comment-respond">.*?</div><!-- #respond -->', re.S)
 
+# values WordPress changes on every visit (security codes, cache stamps): fixed, so a weekly
+# refresh only changes pages whose content really changed
+VOLATILE = [
+    (re.compile(r'(name=["\']_wpnonce["\'] value=["\'])[0-9a-f]+'), r'\1'),
+    (re.compile(r'(_wpnonce=)[0-9a-f]{10}'), r'\1'),
+    (re.compile(r'("(?:\w*_)?nonce"\s*:\s*")[0-9a-f]{10}(")'), r'\1\2'),
+    (re.compile(r"(id='like-post-wrapper-\d+-\d+)-[0-9a-f]+'"), r"\1'"),
+    (re.compile(r'(stats\.wp\.com/e-)\d{6}(\.js)'), r'\g<1>000000\2'),
+    (re.compile(r'(\?ver=|#ver=)20\d{6}\b'), r'\g<1>0'),
+    (re.compile(r'<!-- Page (?:cached|optimized|uncached) by LiteSpeed[^>]*-->'), ''),
+    (re.compile(r'((?:obj_id=|like-post-frame-)\d+-\d+)-[0-9a-f]{13}'), r'\1'),
+    (re.compile(r'(wp-embed-share-tab-(?:wordpress|html)-\d+)-\d+'), r'\1'),
+]
+
 def fix_html(fp, h):
+    for rx, rep in VOLATILE:
+        h = rx.sub(rep, h)
     h = QREF.sub(r'\1', h)
     for rx in DROP_HEAD:
         h = rx.sub('', h)
@@ -90,6 +109,16 @@ def fix_html(fp, h):
     # site search -> static search page
     h = re.sub(r'(<form[^>]*(?:class="[^"]*search-form|class="[^"]*wp-block-search|role="search")[^>]*action=")[^"]*(")',
                lambda m: m.group(1) + rel(fp, 'search/') + '/' + m.group(2), h)
+    page = posixpath.relpath(posixpath.dirname(posixpath.relpath(fp, out).replace(os.sep, '/')) or '.', '.')
+    if not HIDDEN and os.path.basename(fp) == 'index.html':
+        own = base + ('' if page == '.' else urllib.parse.quote(page) + '/')
+        h = re.sub(r'<link rel=["\']canonical["\'][^>]*>', '<link rel="canonical" href="%s" />' % own, h, count=1)
+    if HIDDEN:
+        real = 'https://%s/%s' % (domain, '' if page == '.' else page + '/')
+        h = re.sub(r'<link rel=["\']canonical["\'][^>]*>\s*', '', h)
+        h = re.sub(r'<meta name=["\']robots["\'][^>]*>\s*', '', h)
+        h = re.sub(r'(<meta property="og:url" content=")[^"]*', lambda m: m.group(1) + real, h)
+        h = re.sub(r'(<head(?:\s[^>]*)?>)', lambda m: m.group(1) + '\n<meta name="robots" content="noindex, follow">\n<link rel="canonical" href="%s">' % real, h, count=1)
     return h
 
 pages = []
@@ -172,17 +201,19 @@ if tpl_file:
     nf = nf.replace("fetch('index.json')", "fetch('search/index.json')").replace("'<a href=\"../'+d.u", "'<a href=\"'+d.u")
     nf = re.sub(r'((?:href|src)=["\'])\.\./', r'\1', nf)
     nf = re.sub(r'<li class="breadcrumb-item fff">[^<]*</li>', '<li class="breadcrumb-item fff">Not found</li>', nf)
-    nf = nf.replace('<head>', '<head>\n<base href="' + base + '">', 1)
+    nf = re.sub(r'(<head(?:\s[^>]*)?>)', lambda m: m.group(1) + '\n<base href="' + base + '">', nf, count=1)
     open(os.path.join(out, '404.html'), 'w', encoding='utf-8').write(nf)
 
 # 4. sitemap, robots, .nojekyll
 now = datetime.now(timezone.utc).strftime('%Y-%m-%d')
 urls = sorted(p for p in pages if p != 'search')
+if HIDDEN:
+    urls = []  # no sitemap while hidden
 with open(os.path.join(out, 'sitemap.xml'), 'w') as f:
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
     for p in urls:
         f.write('  <url><loc>%s%s</loc><lastmod>%s</lastmod></url>\n' % (base, '' if p == '.' else p + '/', now))
     f.write('</urlset>\n')
-open(os.path.join(out, 'robots.txt'), 'w').write('User-agent: *\nAllow: /\nSitemap: %ssitemap.xml\n' % base)
+open(os.path.join(out, 'robots.txt'), 'w').write('User-agent: *\nAllow: /\n' + ('' if HIDDEN else 'Sitemap: %ssitemap.xml\n' % base))
 open(os.path.join(out, '.nojekyll'), 'w').close()
-print('pages', len(urls), 'search items', len(idx))
+print('pages', len(pages), 'search items', len(idx), 'hidden' if HIDDEN else '')
