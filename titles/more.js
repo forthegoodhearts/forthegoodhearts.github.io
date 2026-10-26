@@ -30,10 +30,10 @@
       box.innerHTML = html;
       return;
     }
-    html = '<aside class="more-titles" style="margin:0 0 2em;padding:1em 1.2em;border:1px solid rgba(127,127,127,.35);border-radius:8px">' +
-      '<h3 style="margin:0 0 .7em;font-size:1.05em">From our other sites</h3><ul style="padding:0;margin:0">' + list.map(item).join('') + '</ul>' +
-      (d.more ? '<p style="margin:.4em 0 0"><a href="' + esc(d.more) + '">See all →</a></p>' : '') + '</aside>';
-    var at = document.querySelector('#primary, main, #main, .site-main, #content');
+    html = '<div class="more-titles" style="box-sizing:border-box;max-width:100%;margin:0 0 2em;padding:1em 1.2em;border:1px solid rgba(127,127,127,.35);border-radius:8px">' +
+      '<p style="margin:0 0 .7em;font-size:1.1em;font-weight:700;color:inherit">From our other sites</p><ul style="padding:0;margin:0">' + list.map(item).join('') + '</ul>' +
+      (d.more ? '<p style="margin:.4em 0 0"><a href="' + esc(d.more) + '">See all →</a></p>' : '') + '</div>';
+    var at = (document.querySelector('.site-main') || document.querySelector('main, #main, #primary, #content'));
     if (at) at.insertAdjacentHTML('afterbegin', html);
   }).catch(function () {});
 })();
