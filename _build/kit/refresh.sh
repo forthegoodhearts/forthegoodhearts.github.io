@@ -45,6 +45,8 @@ cd "$ROOT"
 KEEP="_build CNAME MOVE-DAY.md .github .git last-checked.txt $(cat _build/keep.txt 2>/dev/null || true)"
 for f in $(ls -A); do case " $KEEP " in *" $f "*) ;; *) rm -rf "$f";; esac; done
 cp -r "$W/out/." "$ROOT/"
+# rule saw128 (Rasulullah Sallallahu A'laihi Wa Sallam): only when the owner ticked it for this site (SAW=fix|add in site.env)
+if [ -n "$SAW" ]; then python3 -I "$B/saw.py" "$ROOT" "$SAW"; fi
 # titles from the owner's other sites (Web J01): needs SITE_ID in _build/site.env
 if [ -n "$SITE_ID" ]; then python3 -I "$B/titles.py" "$ROOT" "$SITE_ID"; fi
 # sites with their own new content: open the pages listed in _build/open.txt, add them to sitemap and search
